@@ -1,4 +1,4 @@
-﻿import * as React from 'react';
+﻿import React, { Component, useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, Switch, Button, ScrollView, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -6,17 +6,38 @@ import { AddAlarm } from './UIComponents';
 import { FontAwesome } from '@expo/vector-icons';
 import { Audio } from "expo-av";
 import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import { Alarm, getRadioById, Radio } from './Modules/Models';
+import { insertAlarmItem } from './Modules/DbController';
 
 const Stack = createNativeStackNavigator();
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
         shouldShowAlert: true,
-        shouldPlaySound: false,
+        shouldPlaySound: true,
         shouldSetBadge: false,
     }),
 });
 
 export default function App() {
+    const notificationListener = useRef();
+    const responseListener = useRef();
+
+    useEffect(() => {
+        registerForPushNotificationsAsync();
+
+        notificationListener.current = Notifications.addNotificationReceivedListener;
+
+        responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+            console.log(response);
+        });
+
+        return () => {
+            Notifications.removeNotificationSubscription(notificationListener.current);
+            Notifications.removeNotificationSubscription(responseListener.current);
+        };
+    }, []);
+
     return (
         <NavigationContainer>
             <Stack.Navigator>
@@ -38,15 +59,20 @@ function formatDateTime(date) {
     ].join(':');
 }
 
-async function schedulePushNotification() {
-    await Notifications.scheduleNotificationAsync({
+async function schedulePushNotification(alarm) {
+    const radio = getRadioById(alarm.radioId);
+    const identifier = await Notifications.scheduleNotificationAsync({
         content: {
-            title: "You've got mail! 📬",
-            body: 'Here is the notification body',
-            data: { data: 'goes here' },
+            title: "Alarm time!",
+            body: `Click to listen stream of ${radio.name}`,
+            data: { radioId: radio.id },
         },
-        trigger: { seconds: 2 },
+        trigger: {
+            hour: time.getHours(),
+            minute: time.getMinutes(),
+        },
     });
+    return identifier;
 }
 
 async function registerForPushNotificationsAsync() {
@@ -80,7 +106,12 @@ async function registerForPushNotificationsAsync() {
     return token;
 }
 
-class HomeScreen extends React.Component {
+async function cancelScheduledPushNotification(identifier) {
+    await Notifications.cancelScheduledNotificationAsync(identifier);
+}
+
+
+class HomeScreen extends Component {
 
     constructor(props) {
         super(props);
@@ -93,28 +124,20 @@ class HomeScreen extends React.Component {
     }
 
     state = {
-        alarmUrls: [
-            { id: 0, url: "http://sc-blues.1.fm:8200" },
-        ],
-        customText: null,
         maxId: 0,
-        maxCreatedAt: null,
+        maxCreatedAt: null, 
         alarms: [
-            { id: 0, time: new Date(), turnOn: true, createdAt: new Date(), urlId: 0 },
-            { id: 1, time: new Date(), turnOn: true, createdAt: new Date(), urlId: 0 },
-            { id: 2, time: new Date(), turnOn: true, createdAt: new Date(), urlId: 0 },
-            { id: 3, time: new Date(), turnOn: true, createdAt: new Date(), urlId: 0 },
-            { id: 4, time: new Date(), turnOn: true, createdAt: new Date(), urlId: 0 },
-            { id: 5, time: new Date(), turnOn: true, createdAt: new Date(), urlId: 0 },
+            new Alarm(0, new Date(), true, 0),
         ],
-        currentSound: null,
     }
 
-    createAlarm(newTime, createdAt) {
+    createAlarm(newTime, radioId) {
         if (!(newTime instanceof Date) || isNaN(newTime)) {
             throw 1;
         }
-        return { id: this.state.maxId, time: newTime, turnOn: false, createdAt: createdAt };
+        maxId = this.state.maxId;
+        this.setState({ maxId: maxId + 1 });
+        return new Alarm(maxId, newTime, true, radioId);
     }
 
     componentDidUpdate() {
@@ -123,8 +146,8 @@ class HomeScreen extends React.Component {
                 this.state.alarms = [];
             }
             if (this.state.maxCreatedAt !== this.props.route.params.createdAt) {
-                this.state.alarms.push(this.createAlarm(this.props.route.params.newAlarmTime, this.props.route.params.createdAt));
-                this.state.maxId += 1;
+                this.state.alarms.push(this.createAlarm(this.props.route.params.newAlarmTime, this.props.route.params.radioId));
+                insertAlarmItem()
                 this.state.maxCreatedAt = this.props.route.params.createdAt;
                 this.state.alarms.sort(function (a, b) {
                     if (a.time > b.time) {
@@ -140,28 +163,9 @@ class HomeScreen extends React.Component {
         }
     }
 
-    runRadio = async () => {
-        try {
-            const currentTrackUrl = this.state.alarmUrls[0].url;
-            const { sound } = await Audio.Sound.createAsync(
-                { uri: currentTrackUrl },
-                undefined,
-                null,
-                false
-            );
-            await sound.playAsync();
-
-            this.state.currentSound = sound;
-            this.setState(this.state);
-        } catch (err) {
-            console.error('Failed to start radio', err);
-        }
-    }
-
     render() {
-        const IconButton = ({ title, onPress, icon }) => (
+        const IconButton = ({ onPress, icon }) => (
             <TouchableOpacity style={styles.button} onPress={onPress}>
-                <Text>{title}</Text>
                 {icon}
             </TouchableOpacity>
         );
@@ -171,11 +175,6 @@ class HomeScreen extends React.Component {
                 <Button title='Add Alarm' onPress={
                     () => {
                         this.props.navigation.navigate('AddAlarm', ({ title: 'FIRST' }));
-                    }
-                } />
-                <Button title='Run alarm' onPress={
-                    () => {
-                        this.runRadio();
                     }
                 } />
                 <ScrollView>
@@ -189,11 +188,22 @@ class HomeScreen extends React.Component {
                                             () => {
                                                 this.state.alarms[i].turnOn = !val.turnOn;
                                                 this.setState(this.state);
+                                                if (!val.turnOn) {
+                                                    schedulePushNotification(val.time).then(identifier => {
+                                                        this.state.alarms[i].identifier = identifier;
+                                                        this.setState(this.state);
+                                                    });
+                                                } else if (val.identifier) {
+                                                    cancelScheduledPushNotification(val.identifier).then(() => {
+                                                        this.state.alarms[i].identifier = null;
+                                                        this.setState(this.state);
+                                                    });
+                                                }
                                             }
                                         }
                                     />
                                     <Text>{formatDateTime(val.time)}</Text>
-                                    <IconButton title='Add Alarm' onPress={
+                                    <IconButton onPress={
                                         () => {
                                             this.state.alarms.splice(i, 1);
                                             this.setState(this.state);
@@ -217,7 +227,7 @@ const styles = StyleSheet.create({
         paddingRight: 20,
         flex: 1,
         backgroundColor: '#fff',
-        alignItems: 'stretch',
+        alignItems: 'baseline',
         justifyContent: 'center',
     },
     button: {

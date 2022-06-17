@@ -1,7 +1,9 @@
 {
   "ExpandedNodes": [
     "",
+    "\\Modules",
     "\\UIComponents"
   ],
+  "SelectedNode": "\\UIComponents\\PlayScreen.js",
   "PreviewInSolutionExplorer": false
 }
