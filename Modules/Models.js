@@ -4,6 +4,7 @@ class Alarm {
     time_format;
     turnOn
     radioId;
+    pushId;
 
     constructor(id: int, time: Date, turnOn: bool, radioId: int) {
         this.id = id;
@@ -13,11 +14,12 @@ class Alarm {
         }
         this.turnOn = turnOn;
         this.radioId = radioId;
+        this.pushId = null;
     }
 
     setTimeFormat(time_format) {
         this.time_format = time_format;
-        this.time = Date.parse('2021.01.01 ' + time_format);
+        this.time = new Date(Date.parse('2021-01-01T' + time_format + ':00'));
     }
 
     formatTime() {
@@ -47,8 +49,8 @@ class Radio {
 
 const radioList = {
     0: new Radio(0, "http://sc-blues.1.fm:8200", 'Blues'),
-    1: new Radio(0, "http://sc-classrock.1.fm:8200", 'Classic Rock'),
-    2: new Radio(0, "http://sc-psytrance.1.fm:8200/", 'Bom Psytrance'),
+    1: new Radio(1, "http://sc-classrock.1.fm:8200", 'Classic Rock'),
+    2: new Radio(2, "http://sc-psytrance.1.fm:8200/", 'Bom Psytrance'),
 };
 
 function getRadioById(id) {
@@ -57,8 +59,8 @@ function getRadioById(id) {
 
 function radioListForDropDown() {
     let dropdown = [];
-    for (i = 0; i < radioList.length; i++) {
-        dropdown.push({ label: radioList[i].name, value: radioList[i].id });
+    for (var prop in radioList) {
+        dropdown.push({ label: radioList[prop].name, value: radioList[prop].id });
     }
     return dropdown;
 }

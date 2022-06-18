@@ -8,7 +8,7 @@ import { Audio } from "expo-av";
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Alarm, getRadioById, Radio } from './Modules/Models';
-import { insertAlarmItem } from './Modules/DbController';
+import { insertAlarmItem, updateAlarmItem, selectAlarmsList, createTable, deleteAlarmItem } from './Modules/DbController';
 
 const Stack = createNativeStackNavigator();
 Notifications.setNotificationHandler({
@@ -59,17 +59,20 @@ function formatDateTime(date) {
     ].join(':');
 }
 
-async function schedulePushNotification(alarm) {
+async function schedulePushNotification(alarm: Alarm) {
+    console.log('async shedule #' + alarm.id + ' time ' + alarm.time_format);
     const radio = getRadioById(alarm.radioId);
     const identifier = await Notifications.scheduleNotificationAsync({
         content: {
             title: "Alarm time!",
+            sound: "default",
             body: `Click to listen stream of ${radio.name}`,
             data: { radioId: radio.id },
         },
         trigger: {
-            hour: time.getHours(),
-            minute: time.getMinutes(),
+            hour: alarm.time.getHours(),
+            minute: alarm.time.getMinutes(),
+            repeats: true,
         },
     });
     return identifier;
@@ -107,37 +110,57 @@ async function registerForPushNotificationsAsync() {
 }
 
 async function cancelScheduledPushNotification(identifier) {
+    console.log('async cancel # ' + identifier);
     await Notifications.cancelScheduledNotificationAsync(identifier);
 }
 
 
 class HomeScreen extends Component {
-
-    constructor(props) {
-        super(props);
-        this.state.maxId = 0;
-        for (let i = 0; i < this.state.alarms.length; i++) {
-            if (this.state.maxId <= this.state.alarms[i].id) {
-                this.state.maxId = this.state.alarms[i].id + 1;
-            }
-        }
-    }
-
     state = {
         maxId: 0,
         maxCreatedAt: null, 
-        alarms: [
-            new Alarm(0, new Date(), true, 0),
-        ],
+        alarms: [],
+    }
+
+    constructor(props) {
+        super(props);
+        createTable().then(() => {
+            selectAlarmsList().then(list => {
+                console.log('set list');
+                console.log(list);
+                this.setState({ alarms: list });
+                let maxId = this.state.maxId;
+                list.forEach(item => {
+                    if (maxId <= item.id) {
+                        maxId = item.id + 1;
+                    }
+                })
+                this.setState({ maxId: maxId });
+                this.setState({ maxCreatedAt: new Date() });
+                console.log('select alarms done length ' + list.length);
+                console.log('max id ' + this.state.maxId);
+            });
+        });
     }
 
     createAlarm(newTime, radioId) {
         if (!(newTime instanceof Date) || isNaN(newTime)) {
             throw 1;
         }
-        maxId = this.state.maxId;
-        this.setState({ maxId: maxId + 1 });
+        let maxId = this.state.maxId;
+        this.state.maxId += 1
+        this.setState(this.state);
+        console.log('max id ' + this.state.maxId);
         return new Alarm(maxId, newTime, true, radioId);
+    }
+
+    componentDidMount() {
+        for (let i = 0; i < this.state.alarms.length; i++) {
+            if (this.state.maxId <= this.state.alarms[i].id) {
+                this.state.maxId = this.state.alarms[i].id + 1;
+            }
+        }
+        console.log('max id ' + this.state.maxId);
     }
 
     componentDidUpdate() {
@@ -145,11 +168,24 @@ class HomeScreen extends Component {
             if (!this.state.alarms) {
                 this.state.alarms = [];
             }
-            if (this.state.maxCreatedAt !== this.props.route.params.createdAt) {
-                this.state.alarms.push(this.createAlarm(this.props.route.params.newAlarmTime, this.props.route.params.radioId));
-                insertAlarmItem()
+            if (this.state.maxCreatedAt != this.props.route.params.createdAt && this.state.maxCreatedAt != null) {
+                const alarm = this.createAlarm(this.props.route.params.newAlarmTime, this.props.route.params.radioId);
+                console.log('new alarm id ' + alarm.id);
+                this.state.alarms.push(alarm);
+                insertAlarmItem(alarm);
+                schedulePushNotification(alarm).then(identifier => {
+                    alarm.identifier = identifier;
+                    updateAlarmItem(alarm);
+                    for (let i = 0; i < this.state.alarms.length; i++) {
+                        if (this.state.alarms[i].id == alarm.id) {
+                            this.state.alarms[i] = alarm;
+                            break;
+                        }
+                    }
+                    this.setState(this.state);
+                });
                 this.state.maxCreatedAt = this.props.route.params.createdAt;
-                this.state.alarms.sort(function (a, b) {
+                /**this.state.alarms.sort(function (a, b) {
                     if (a.time > b.time) {
                         return 1;
                     }
@@ -157,7 +193,7 @@ class HomeScreen extends Component {
                         return -1;
                     }
                     return 0;
-                });
+                });*/
                 this.setState(this.state);
             }
         }
@@ -181,35 +217,40 @@ class HomeScreen extends Component {
                     {
                         this.state.alarms.map(
                             (val, i) => (
-                                <View key={val.id}>
+                                <View key={val.id} style={styles.view_item}>
+                                    <IconButton onPress={
+                                        () => {
+                                            deleteAlarmItem(val);
+                                            this.state.alarms.splice(i, 1);
+                                            this.setState(this.state);
+                                        }
+                                    }
+                                        icon={<FontAwesome name="trash" size={24} color="grey" />}
+                                    />
+                                    <Text>{formatDateTime(val.time)}</Text>
                                     <Switch
                                         value={val.turnOn}
                                         onValueChange={
                                             () => {
                                                 this.state.alarms[i].turnOn = !val.turnOn;
                                                 this.setState(this.state);
-                                                if (!val.turnOn) {
-                                                    schedulePushNotification(val.time).then(identifier => {
-                                                        this.state.alarms[i].identifier = identifier;
+                                                if (val.turnOn) {
+                                                    schedulePushNotification(val).then(identifier => {
+                                                        this.state.alarms[i].pushId = identifier;
+                                                        updateAlarmItem(this.state.alarms[i]);
                                                         this.setState(this.state);
+                                                        console.log('shedule #' + val.id + ' time ' + val.time_format);
                                                     });
                                                 } else if (val.identifier) {
                                                     cancelScheduledPushNotification(val.identifier).then(() => {
-                                                        this.state.alarms[i].identifier = null;
+                                                        this.state.alarms[i].pushId = null;
+                                                        updateAlarmItem(this.state.alarms[i]);
                                                         this.setState(this.state);
+                                                        console.log('cancel #' + val.id + ' time ' + val.time_format)
                                                     });
                                                 }
                                             }
                                         }
-                                    />
-                                    <Text>{formatDateTime(val.time)}</Text>
-                                    <IconButton onPress={
-                                        () => {
-                                            this.state.alarms.splice(i, 1);
-                                            this.setState(this.state);
-                                        }
-                                    }
-                                        icon={<FontAwesome name="trash" size={24} color="grey" />}
                                     />
                                 </View>
                             )
@@ -227,8 +268,13 @@ const styles = StyleSheet.create({
         paddingRight: 20,
         flex: 1,
         backgroundColor: '#fff',
-        alignItems: 'baseline',
+        alignItems: 'stretch',
         justifyContent: 'center',
+    },
+    view_item: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
     },
     button: {
 

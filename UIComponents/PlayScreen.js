@@ -3,7 +3,7 @@ import { Audio } from "expo-av";
 import { Radio } from './Modules/Models';
 
 
-function PlayScreen {
+function PlayScreen () {
     const [currentSound, setCurrentSound] = useState(null);
 
     const playStream = async (radio: Radio) => {
@@ -17,7 +17,7 @@ function PlayScreen {
             );
             await sound.playAsync();
 
-            setCurrentSound( sound);
+            setCurrentSound(sound);
         } catch (err) {
             console.error('Failed to start radio', err);
         }
