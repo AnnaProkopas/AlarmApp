@@ -12,4 +12,4 @@ web-build/
 v17
 # macOS
 .DS_Store
-.vs
+.vs/slnx.sqlite
