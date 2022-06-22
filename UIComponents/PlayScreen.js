@@ -1,12 +1,17 @@
 import React, { Component, useState, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, Switch, Button, ScrollView, TouchableOpacity } from 'react-native';
 import { Audio } from "expo-av";
-import { Radio } from './Modules/Models';
+import { Radio, getRadioById } from '../Modules/Models';
+import { FontAwesome } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { turnOffAlarmItem } from '../Modules/DbController';
 
-
-function PlayScreen () {
+function PlayScreen (props) {
     const [currentSound, setCurrentSound] = useState(null);
+    const [soundState, setSoundState] = useState(false);
 
     const playStream = async (radio: Radio) => {
+        console.log('playStream');
         try {
             const currentTrackUrl = radio.url;
             const { sound } = await Audio.Sound.createAsync(
@@ -15,22 +20,34 @@ function PlayScreen () {
                 null,
                 false
             );
+            if (currentSound != null && soundState) {
+                stopStream();
+            }
+
             await sound.playAsync();
+            setSoundState(true);
 
             setCurrentSound(sound);
         } catch (err) {
             console.error('Failed to start radio', err);
         }
     };
+
     const stopStream = async () => {
+        console.log('stopStream');
         try {
-            await sound.playAsync();
+            await currentSound.pauseAsync();
+            setSoundState(false);
         } catch (err) {
-            console.error('Failed to start radio', err);
+            console.error('Failed to pause radio', err);
         }
     };
 
-    playStream();
+
+    useEffect(() => {
+        playStream(getRadioById(props.route.params.radioId));
+        turnOffAlarmItem(props.route.params.alarmId);
+    }, []);
 
     const IconButton = ({ onPress, icon }) => (
         <TouchableOpacity style={styles.button} onPress={onPress}>
@@ -39,16 +56,40 @@ function PlayScreen () {
     );
 
     return (
-        <View>
-            <IconButton onPress={
-                () => {
-                        
+        <LinearGradient colors={['#4c669f', '#3b5998', '#192f6a']} style={styles.gradient}>
+            {
+                soundState ? 
+                <IconButton style={styles.button} onPress={
+                    () => {
+                        stopStream();
+                        setSoundState(false);
+                    }
                 }
+                    icon={<FontAwesome name="pause" size={50} color="black" />}
+                />
+                    :
+                <IconButton style={styles.button}  onPress={
+                    () => {
+                        currentSound.playAsync();
+                        setSoundState(true);
+                    }
+                }
+                    icon={<FontAwesome name="play" size={50} color="black" />}
+                />
             }
-                icon={<FontAwesome name="stop" size={50} color="grey" />}
-            />
-        </View>
+        </LinearGradient>
     );
 };
+
+const styles = StyleSheet.create({
+    gradient: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    button: {
+    },
+});
 
 export { PlayScreen };

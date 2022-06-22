@@ -33,7 +33,7 @@ function AddAlarm(props) {
     };
 
     return (
-        <View>
+        <View style={styles.container}>
             <Button onPress={showTimepicker} title="Show time picker!" />
             <DropDownPicker
                 open={open}
@@ -45,8 +45,7 @@ function AddAlarm(props) {
             <Button
                 title='Submit'
                 onPress={() => {
-                    props.navigation.setOptions({ newAlarmTime: date, createdAt: new Date(), radioId: radioId });
-                    props.navigation.navigate('Home', { newAlarmTime: date, createdAt: new Date(), radioId: radioId });
+                    props.navigation.navigate('Home', { newAlarmTime: date, radioId: radioId, maxId: props.route.params.maxId });
                 }}
             />
             <Button
@@ -62,8 +61,8 @@ function AddAlarm(props) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'top',
-        gap: 1,
+        justifyContent: 'flex-start',
+        gap: 10,
     },
     button: {
 

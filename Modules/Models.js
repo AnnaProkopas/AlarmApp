@@ -18,8 +18,11 @@ class Alarm {
     }
 
     setTimeFormat(time_format) {
+        let date = new Date('2021-01-01T' + time_format + ':00');
+        var userTimezoneOffset = date.getTimezoneOffset() * 60000;
+        this.time = new Date(date.getTime() - userTimezoneOffset);
+
         this.time_format = time_format;
-        this.time = new Date(Date.parse('2021-01-01T' + time_format + ':00'));
     }
 
     formatTime() {
