@@ -1,10 +1,8 @@
-import React, { Component, useState, useEffect, useRef } from 'react';
+import React, { Component } from 'react';
 import { StyleSheet, Text, View, Switch, Button, ScrollView, TouchableOpacity } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
 import { FontAwesome } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import { Alarm, getRadioById, Radio } from '../Modules/Models';
+import { Alarm, getRadioById } from '../Modules/Models';
 import { insertAlarmItem, updateAlarmItem, selectAlarmsList, createTable, deleteAlarmItem } from '../Modules/DbController';
 
 
@@ -135,6 +133,11 @@ class HomeScreen extends Component {
                                     <IconButton onPress={
                                         () => {
                                             deleteAlarmItem(val);
+                                            if (val.pushId) {
+                                                cancelScheduledPushNotification(val.pushId).then(() => {
+                                                    console.log('cancel #' + val.id + ' time ' + val.time_format)
+                                                });
+                                            }
                                             this.state.alarms.splice(i, 1);
                                             this.setState(this.state);
                                         }
