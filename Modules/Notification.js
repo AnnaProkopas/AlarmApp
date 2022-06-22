@@ -1,4 +1,4 @@
-import React, { Component, useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import navigation from './RootNavigation';

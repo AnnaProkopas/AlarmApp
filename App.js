@@ -1,13 +1,8 @@
-﻿import React, { Component, useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, Switch, Button, ScrollView, TouchableOpacity } from 'react-native';
+﻿import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AddAlarm, PlayScreen, HomeScreen } from './UIComponents';
-import { FontAwesome } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import { Alarm, getRadioById, Radio } from './Modules/Models';
-import { insertAlarmItem, updateAlarmItem, selectAlarmsList, createTable, deleteAlarmItem } from './Modules/DbController';
 import { navigationRef } from './Modules/RootNavigation';
 import { useNotifications } from './Modules/Notification';
 

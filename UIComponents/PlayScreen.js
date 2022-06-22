@@ -9,6 +9,7 @@ import { turnOffAlarmItem } from '../Modules/DbController';
 function PlayScreen (props) {
     const [currentSound, setCurrentSound] = useState(null);
     const [soundState, setSoundState] = useState(null);
+    const [radioName, setRadioName] = useState('');
 
     const playStream = async (radio: Radio) => {
         console.log('playStream');
@@ -28,6 +29,7 @@ function PlayScreen (props) {
             setSoundState(true);
 
             setCurrentSound(sound);
+            setRadioName(radio.name);
         } catch (err) {
             console.error('Failed to start radio', err);
         }
@@ -57,6 +59,7 @@ function PlayScreen (props) {
 
     return (
         <LinearGradient colors={['#4c669f', '#3b5998', '#192f6a']} style={styles.gradient}>
+            <Text style={styles.text}>{radioName}</Text>
             {
                 soundState == null ?
                     <ActivityIndicator size="large" color="#000" />
@@ -86,12 +89,18 @@ function PlayScreen (props) {
 const styles = StyleSheet.create({
     gradient: {
         flex: 1,
-        flexDirection: 'row',
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
     },
     button: {
     },
+    text: {
+        fontSize: 40,
+        fontWeight: '800',
+        textShadowColor: 'white',
+        textShadowRadius: 2,
+    }
 });
 
 export { PlayScreen };
