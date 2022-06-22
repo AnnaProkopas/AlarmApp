@@ -12,3 +12,4 @@ web-build/
 v17
 # macOS
 .DS_Store
+.vs

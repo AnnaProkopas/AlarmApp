@@ -125,6 +125,7 @@ class HomeScreen extends Component {
                         this.props.navigation.navigate('AddAlarm', ({ maxId: this.state.maxId }));
                     }
                 } />
+                <Text></Text>
                 <ScrollView>
                     {
                         this.state.alarms.map(
@@ -193,9 +194,6 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'row',
         justifyContent: 'space-between',
-    },
-    button: {
-
     },
 });
 

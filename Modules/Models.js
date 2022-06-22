@@ -52,7 +52,7 @@ class Radio {
 
 const radioList = {
     0: new Radio(0, "https://us3.internet-radio.com/proxy/topblues?mp=/stream", 'TOPBLUES'),
-    1: new Radio(1, "https://us4.internet-radio.com/proxy/douglassinclair?mp=/stream", 'Classic Rock Florida HD Radio'),
+    1: new Radio(1, "https://us4.internet-radio.com/proxy/douglassinclair?mp=/stream", 'Classic Rock Florida'),
     2: new Radio(2, "https://cast.magicstreams.gr:9111/stream/1/", 'Psyndora Psytrance'),
     3: new Radio(3, "https://uk3.internet-radio.com/proxy/majesticjukebox?mp=/live", 'Majestic Jukebox Radio'),
     4: new Radio(4, "https://uk7.internet-radio.com/proxy/movedahouse?mp=/stream", 'Techno '),
