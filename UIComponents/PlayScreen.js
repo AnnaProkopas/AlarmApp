@@ -1,5 +1,5 @@
-import React, { Component, useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, Switch, Button, ScrollView, TouchableOpacity } from 'react-native';
+import React, { Component, useState, useEffect, useRef,  } from 'react';
+import { StyleSheet, Text, View, Switch, Button, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Audio } from "expo-av";
 import { Radio, getRadioById } from '../Modules/Models';
 import { FontAwesome } from '@expo/vector-icons';
@@ -8,7 +8,7 @@ import { turnOffAlarmItem } from '../Modules/DbController';
 
 function PlayScreen (props) {
     const [currentSound, setCurrentSound] = useState(null);
-    const [soundState, setSoundState] = useState(false);
+    const [soundState, setSoundState] = useState(null);
 
     const playStream = async (radio: Radio) => {
         console.log('playStream');
@@ -58,7 +58,9 @@ function PlayScreen (props) {
     return (
         <LinearGradient colors={['#4c669f', '#3b5998', '#192f6a']} style={styles.gradient}>
             {
-                soundState ? 
+                soundState == null ?
+                    <ActivityIndicator size="large" color="#000" />
+                    : soundState ?
                 <IconButton style={styles.button} onPress={
                     () => {
                         stopStream();

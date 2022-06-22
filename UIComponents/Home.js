@@ -19,7 +19,6 @@ async function schedulePushNotification(alarm: Alarm) {
             data: {
                 radioId: radio.id,
                 alarmId: alarm.id,
-                identifier: alarm.pushId,
             },
         },
         trigger: {
@@ -79,12 +78,13 @@ class HomeScreen extends Component {
     }
 
     componentDidMount() {
+        this.updateAlarmList();/**
         for (let i = 0; i < this.state.alarms.length; i++) {
             if (this.state.maxId <= this.state.alarms[i].id) {
                 this.state.maxId = this.state.alarms[i].id + 1;
             }
         }
-        console.log('max id ' + this.state.maxId);
+        console.log('max id ' + this.state.maxId);*/
     }
 
     componentDidUpdate() {
@@ -110,9 +110,6 @@ class HomeScreen extends Component {
                 });
                 this.setState(this.state);
             }
-            /**else {
-                this.updateAlarmList();
-            }*/
         }
     }
 

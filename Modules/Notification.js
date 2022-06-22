@@ -46,7 +46,7 @@ function useNotifications () {
         responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
             //console.log(response);
             const data = response.notification.request.content.data;
-            Notifications.cancelScheduledNotificationAsync(data.identifier)
+            Notifications.cancelScheduledNotificationAsync(response.notification.request.identifier)
             navigation.navigate('PlayScreen', ({
                 radioId: data.radioId,
                 alarmId: data.alarmId,
